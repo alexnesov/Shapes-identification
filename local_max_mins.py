@@ -29,6 +29,10 @@ def get_min_max(n):
     # Inspiration: https://stackoverflow.com/questions/48023982/pandas-finding-local-max-and-min?rq=1
     df['flag_min'] = np.where(df['min'].notna(),1,0)
     df['flag_max'] = np.where(df['max'].notna(),1,0)
+    
+    # We need to have Date as index for subsequent code, 
+    # but if re-run this code in the same kernel session we would get an error. 
+    # This is why we need this control flow tool    
     if df.index.name != 'Date':
         df = df.set_index('Date')
     else:
@@ -38,10 +42,6 @@ def get_min_max(n):
 
 
 def generate_plot():
-    # We need to have Date as index for subsequent code, 
-    # but if re-run this code in the same kernel session we would get an error. 
-    # This is why we need this control flow tool    
-
     fig = plt.figure(figsize=(15,8))
     ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
     df.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
