@@ -6,36 +6,42 @@ from datetime import datetime, timedelta
 import matplotlib.pyplot as plt
 import numpy as np
 
-pd.set_option('display.max_rows', None)
-today = str(datetime.today().strftime('%Y-%m-%d'))
+
 ticker = "MSFT"
-fin = yf.download(ticker, start = "2020-01-01", end = today, period = "1d")
-
-rs = np.array(fin['Adj Close'])
-df = pd.DataFrame(rs, columns=['Close'])
-
-n=3 # number of points to be checked before and after 
-# Find local peaks
-df['min'] = df.iloc[argrelextrema(df.Close.values, np.less_equal, order=n)[0]]['Close']
-df['max'] = df.iloc[argrelextrema(df.Close.values, np.greater_equal, order=n)[0]]['Close']
-df['Date'] = fin.index
-# Inspiration: https://stackoverflow.com/questions/48023982/pandas-finding-local-max-and-min?rq=1
+n=3 # number of points to be checked before and after (for min/max)
 
 
-df['flag_min'] = np.where(df['min'].notna(),1,0)
-df['flag_max'] = np.where(df['max'].notna(),1,0)
+def pull_data(ticker):
+    pd.set_option('display.max_rows', None)
+    today = str(datetime.today().strftime('%Y-%m-%d'))
+    fin = yf.download(ticker, start = "2020-01-01", end = today, period = "1d")
+    return fin 
 
 
-# We need to have Date as index for subsequent code, 
-# but if re-run this code in the same kernel session we would get an error. 
-# This is why we need this control flow tool
-if df.index.name != 'Date':
-    df = df.set_index('Date')
-else:
-    pass
+
+def get_min_max(n):
+    rs = np.array(fin['Adj Close'])
+    df = pd.DataFrame(rs, columns=['Close'])
+    # Find local peaks
+    df['min'] = df.iloc[argrelextrema(df.Close.values, np.less_equal, order=n)[0]]['Close']
+    df['max'] = df.iloc[argrelextrema(df.Close.values, np.greater_equal, order=n)[0]]['Close']
+    df['Date'] = fin.index
+    # Inspiration: https://stackoverflow.com/questions/48023982/pandas-finding-local-max-and-min?rq=1
+    df['flag_min'] = np.where(df['min'].notna(),1,0)
+    df['flag_max'] = np.where(df['max'].notna(),1,0)
+    if df.index.name != 'Date':
+        df = df.set_index('Date')
+    else:
+        pass
+    return df
+
 
 
 def generate_plot():
+    # We need to have Date as index for subsequent code, 
+    # but if re-run this code in the same kernel session we would get an error. 
+    # This is why we need this control flow tool    
+
     fig = plt.figure(figsize=(15,8))
     ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
     df.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
@@ -49,8 +55,13 @@ def generate_plot():
     ax1.spines["top"].set_visible(False)    
     ax1.spines["bottom"].set_visible(False)    
     ax1.spines["right"].set_visible(False)    
-    ax1.spines["left"].set_visible(False)  
+    ax1.spines["left"].set_visible(False) 
     ax1.set_title(f"{ticker},n={n}")
     ax1.legend()
 
-generate_plot()
+
+
+if __name__ == "__main__":
+    fin = pull_data(ticker)
+    df= get_min_max(n)
+    generate_plot()
