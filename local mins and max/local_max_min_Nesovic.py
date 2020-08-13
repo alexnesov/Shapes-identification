@@ -6,14 +6,8 @@ from datetime import datetime, timedelta
 import yfinance as yf
 import matplotlib.pyplot as plt
 
-
-# granularity
-# We decompose the algorithm in two phases
-# add a paramter that allow me to lessen or broaden to local min/mac 
-# identification scope
-
 # Parameters
-n=10
+n=5
 ticker = "msft"
 
 def pull_data(ticker):
@@ -23,9 +17,6 @@ def pull_data(ticker):
     fin = fin.reset_index()
     return fin 
 
-
-
-df = pull_data('msft')
 
 def find_all(df):
     """
@@ -47,11 +38,6 @@ def find_all(df):
 
     return valid
 
-valid = find_all(df)
-
-
-
-
 
 def from_idx_to_DF(valid):
     """
@@ -66,10 +52,6 @@ def from_idx_to_DF(valid):
     merged = merged.set_index('Date')
 
     return merged
-
-
-
-findAllDF = from_idx_to_DF(valid)
 
 
 def generate_plot(df):
@@ -90,10 +72,6 @@ def generate_plot(df):
     ax1.set_title(f"{ticker}")
     ax1.legend()
 
-generate_plot(findAllDF)
-
-
-n=5
 
 def second_filter(n,valid):
     df = pull_data(ticker="MSFT")
@@ -127,6 +105,15 @@ def second_filter(n,valid):
 
     return final_mins_idx_unique
 
-filtered = second_filter(n,valid)
-filteredDF = from_idx_to_DF(valid=filtered)
-generate_plot(filteredDF)
+
+if __name__ == '__main__':
+    df = pull_data('msft')
+    valid = find_all(df)
+    findAllDF = from_idx_to_DF(valid)
+    generate_plot(findAllDF)
+    filtered = second_filter(n,valid)
+    filteredDF = from_idx_to_DF(valid=filtered)
+    generate_plot(filteredDF)
+
+
+
