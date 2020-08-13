@@ -1,8 +1,8 @@
 ![alt text](images/consolidation_example.gif)
 
-<center>Illustration of cup shaped curves. Ilustration source: http://www.guppytraders.com/gup347.shtml </center>
+<p align="center">Illustration of cup shaped curves. Ilustration source: http://www.guppytraders.com/gup347.shtml </p>
 
-<h3> Rep description </h3>
+<h3> Repo description </h3>
 
 <ul>
 	<li> <strong>local_max_mins.py</strong>: uses <a href ="https://docs.scipy.org/doc/scipy/reference/signal.html">scipy.signals'</a> "argrelextrema" module to find local mins and max</li>
