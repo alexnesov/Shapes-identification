@@ -107,10 +107,18 @@ def second_filter(n,valid):
 
 
 if __name__ == '__main__':
+    #0
+    # data pull from internet
     df = pull_data('msft')
+
+    #1
+    # finding all local minimums
     valid = find_all(df)
     findAllDF = from_idx_to_DF(valid)
     generate_plot(findAllDF)
+
+    #2 (Optional)
+    # finding min value of list of previous mins for a given time interval (param: n)
     filtered = second_filter(n,valid)
     filteredDF = from_idx_to_DF(valid=filtered)
     generate_plot(filteredDF)
