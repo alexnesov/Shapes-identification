@@ -9,18 +9,23 @@ import matplotlib.pyplot as plt
 # Parameters
 n=5
 ticker = "msft"
+start = "2020-01-01"
 
-def pull_data(ticker):
+def pull_data(ticker, start):
     pd.set_option('display.max_rows', None)
     today = str(datetime.today().strftime('%Y-%m-%d'))
-    fin = yf.download(ticker, start = "2020-01-01", end = today, period = "1d")
+    fin = yf.download(ticker, start = start, end = today, period = "1d")
     fin = fin.reset_index()
     return fin 
 
 
 class get_local_mins_max:
     """
-    param 1: dataframe with 2 columns min: Date, Close
+    :param df: dataframe with 2 columns min: Date, Close
+    :param n: n defines the level of granularity (the scope) for the second algo
+
+    You can either go for all local mins by calling the "find_all_mins" methods
+    Or you can directly call the "minsOfmins" methods
     """
     # class attributes
     def __init__(self,df,n):
@@ -131,7 +136,7 @@ class get_local_mins_max:
 
 
 if __name__ == '__main__':
-    df = pull_data('msft')
+    df = pull_data(ticker,start)
     msft = get_local_mins_max(df,n)
     msft.minsOfmins()
     msft.generate_plot()
