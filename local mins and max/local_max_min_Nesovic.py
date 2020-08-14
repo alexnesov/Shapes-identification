@@ -15,115 +15,123 @@ def pull_data(ticker):
     today = str(datetime.today().strftime('%Y-%m-%d'))
     fin = yf.download(ticker, start = "2020-01-01", end = today, period = "1d")
     fin = fin.reset_index()
-	pass
     return fin 
 
 
-def find_all(df):
+class get_local_mins_max:
     """
-    returns:  list of valid indices
+    param 1: dataframe with 2 columns min: Date, Close
     """
-    # all local minimums
-    valid = []
-    df['index'] = list(range(0,len(df)))
-    # pseudo_index = list(range(0,len(df)))
+    # class attributes
+    def __init__(self,df,n):
+        # instance attributes
+        self.n = n
+        self.df = df
+        self.mins = []
+        self.merged = None
+        self.filter_one = "no"
 
-    df = df.reset_index()
-    for index in list(df['Close'].index):
-        try:
-            if df['Close'][index] < df['Close'][index-1] and \
-                df['Close'][index] < df['Close'][index+1]:
-                valid.append(index)
-        except KeyError:
-            pass
+    def from_idx_to_DF(self):
+        """
+        1. Takes whether output of first filter or second (which is a list of mins indices)
+        2. Creates a flag column, every flag being crated thanks to this list of minds indices
 
-    return valid
+        returns: dataframe
+        """
+        ones = [1] * len(self.mins)
+        new_zip = list(zip(self.mins,ones))
+        new_df = pd.DataFrame(new_zip, columns=['index','flag'])
+        merged = self.df.merge(new_df, on='index', how='left')
+        merged['flag_min'] = np.where(merged['flag'].notna(),1,0)
+        merged = merged.set_index('Date')
 
+        self.merged = merged
+        return self.merged
 
+    def find_all_mins(self):
+        """
+        returns:  list of valid indices
+        """
+        # all local minimums
+        valid = []
+        self.df['index'] = list(range(0,len(self.df)))
 
-def from_idx_to_DF(valid):
-    """
-    :param 1: a list if indices that represent the valid rows
-    """
-    ones = [1] * len(valid)
-    new_zip = list(zip(valid,ones))
-    new_df = pd.DataFrame(new_zip, columns=['index','flag'])
-    final_df = df.set_index('index').join(new_df.set_index('index'))
-    merged = df.merge(new_df, on='index', how='left')
-    merged['flag_min'] = np.where(merged['flag'].notna(),1,0)
-    merged = merged.set_index('Date')
+        self.df = self.df.reset_index()
+        for index in list(self.df['Close'].index):
+            try:
+                if self.df['Close'][index] < self.df['Close'][index-1] and \
+                    self.df['Close'][index] < self.df['Close'][index+1]:
+                    valid.append(index)
+            except KeyError:
+                pass
 
-    return merged
+        self.mins = valid
+        self.merged = self.from_idx_to_DF()
+        return self.mins
 
+    def second_algorithm(self):
+        df = pull_data(ticker="MSFT")
+        df['index'] = list(range(0,len(df)))
+        # broader local minimums
+        final_mins_idx = []
+        for i in self.mins:
+            try:
+                print(df['Close'][i])
+                start = i - self.n
+                end = i + self.n 
+                interval = list(range(start,end))
+                in_interval = []
+                prices_in_interval = []
+                for v in self.mins:
+                    if v in interval:
+                        in_interval.append(v)
+                        prices_in_interval.append(df['Close'][v])
+                
+                indexes_mins = [i for i, x in enumerate(prices_in_interval) \
+                    if x == min(prices_in_interval)]
+                
+                # usualy we are going to get only one min (the probability to 
+                # get exact two same prices, on decimals level on a 10 days 
+                # interval for a same stock if very very mpw). but we never know
+                for i in indexes_mins:
+                    final_mins_idx.append(in_interval[i])
+            except KeyError:
+                pass
+        final_mins_idx_unique = np.unique(final_mins_idx)
 
-def generate_plot(df):
-    fig = plt.figure(figsize=(15,8))
-    ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
-    df.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
-    ax1.plot(df.loc[df.flag_min == 1.0].index,
-        df.Close[df.flag_min == 1.0],
-        '^', markersize=9, color='purple', label='local min')
-    # ax1.plot(df.loc[df.flag_max == 1.0].index,
-    #     df.Close[df.flag_max == 1.0],
-    #     '*', markersize=9, color='green', label='local max')
-    ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.6)
-    ax1.spines["top"].set_visible(False)    
-    ax1.spines["bottom"].set_visible(False)    
-    ax1.spines["right"].set_visible(False)    
-    ax1.spines["left"].set_visible(False) 
-    ax1.set_title(f"{ticker}")
-    ax1.legend()
+        self.mins = final_mins_idx_unique
+        self.merged = self.from_idx_to_DF()
+        return final_mins_idx_unique
 
+    def minsOfmins(self):
+        if self.filter_one == 'no':
+            self.find_all_mins()
+            self.second_algorithm()
+        else:
+            self.second_algorithm()
 
-def second_filter(n,valid):
-    df = pull_data(ticker="MSFT")
-    df['index'] = list(range(0,len(df)))
-    # broader local minimums
-    final_mins_idx = []
-    for i in valid:
-        try:
-            print(df['Close'][i])
-            start = i - n
-            end = i + n 
-            interval = list(range(start,end))
-            in_interval = []
-            prices_in_interval = []
-            for v in valid:
-                if v in interval:
-                    in_interval.append(v)
-                    prices_in_interval.append(df['Close'][v])
-            
-            indexes_mins = [i for i, x in enumerate(prices_in_interval) \
-                if x == min(prices_in_interval)]
-            
-            # usualy we are going to get only one min (the probability to 
-            # get exact two same prices, on decimals level on a 10 days 
-            # interval for a same stock if very very mpw). but we never know
-            for i in indexes_mins:
-                final_mins_idx.append(in_interval[i])
-        except KeyError:
-            pass
-    final_mins_idx_unique = np.unique(final_mins_idx)
+    def generate_plot(self):
+        fig = plt.figure(figsize=(15,8))
+        ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
+        self.merged.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
+        ax1.plot(self.merged.loc[self.merged.flag_min == 1.0].index,
+            self.merged.Close[self.merged.flag_min == 1.0],
+            '^', markersize=9, color='purple', label='local min')
+        # ax1.plot(self.merged.loc[self.merged.flag_max == 1.0].index,
+        #     self.merged.Close[self.merged.flag_max == 1.0],
+        #     '*', markersize=9, color='green', label='local max')
+        ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.6)
+        ax1.spines["top"].set_visible(False)    
+        ax1.spines["bottom"].set_visible(False)    
+        ax1.spines["right"].set_visible(False)    
+        ax1.spines["left"].set_visible(False) 
+        ax1.set_title(f"{ticker}")
+        ax1.legend()
 
-    return final_mins_idx_unique
 
 
 if __name__ == '__main__':
-    #0
-    # data pull from internet
     df = pull_data('msft')
-
-    #1
-    # finding all local minimums
-    valid = find_all(df)
-    findAllDF = from_idx_to_DF(valid)
-    generate_plot(findAllDF)
-
-    #2 (Optional)
-    # finding min value of list of previous mins for a given time interval (param: n)
-    filtered = second_filter(n,valid)
-    filteredDF = from_idx_to_DF(valid=filtered)
-    generate_plot(filteredDF)
-
-
-
+    msft = get_local_mins_max(df,n)
+    msft.minsOfmins()
+    msft.generate_plot()
