@@ -38,7 +38,8 @@ class get_local_mins_max:
 
     def from_idx_to_DF(self):
         """
-        1. Takes whether output of first filter or second (which is a list of mins indices)
+        1. Takes output of first filter or second. The output we are talking about is a 
+        list of indices indicate where the mins are
         2. Creates a flag column, every flag being crated thanks to this list of minds indices
 
         returns: dataframe
