@@ -9,12 +9,12 @@ import matplotlib.pyplot as plt
 # Parameters
 n=5
 ticker = "msft"
-start = "2020-01-01"
+START = "2020-01-01"
 
-def pull_data(ticker, start):
+def pull_data(ticker, START):
     pd.set_option('display.max_rows', None)
     today = str(datetime.today().strftime('%Y-%m-%d'))
-    fin = yf.download(ticker, start = start, end = today, period = "1d")
+    fin = yf.download(ticker, start = START, end = today, period = "1d")
     fin = fin.reset_index()
     return fin 
 
@@ -76,7 +76,7 @@ class get_local_mins_max:
         return self.mins
 
     def second_algorithm(self):
-        df = pull_data(ticker, start)
+        df = pull_data(ticker, START)
         df['index'] = list(range(0,len(df)))
         # broader local minimums
         final_mins_idx = []
@@ -137,7 +137,7 @@ class get_local_mins_max:
 
 
 if __name__ == '__main__':
-    df = pull_data(ticker,start)
+    df = pull_data(ticker,START)
     msft = get_local_mins_max(df,n)
     msft.minsOfmins()
     msft.generate_plot()
