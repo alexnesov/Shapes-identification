@@ -15,6 +15,7 @@ def pull_data(ticker):
     today = str(datetime.today().strftime('%Y-%m-%d'))
     fin = yf.download(ticker, start = "2020-01-01", end = today, period = "1d")
     fin = fin.reset_index()
+	pass
     return fin 
 
 
@@ -37,6 +38,7 @@ def find_all(df):
             pass
 
     return valid
+
 
 
 def from_idx_to_DF(valid):
