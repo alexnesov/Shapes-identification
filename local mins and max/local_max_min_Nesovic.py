@@ -76,7 +76,7 @@ class get_local_mins_max:
         return self.mins
 
     def second_algorithm(self):
-        df = pull_data(ticker="MSFT")
+        df = pull_data(ticker, start)
         df['index'] = list(range(0,len(df)))
         # broader local minimums
         final_mins_idx = []
