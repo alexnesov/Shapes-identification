@@ -19,22 +19,28 @@ def pull_data(ticker, START):
     return fin 
 
 
-class get_local_mins_max:
+class local_extremas:
     """
     :param df: dataframe with 2 columns min: Date, Close
     :param n: n defines the level of granularity (the scope) for the second algo
+    :args: pol and win_size are optionally modifyable for Savgol filter
 
-    You can either go for all local mins by calling the "find_all_mins" methods
-    Or you can directly call the "minsOfmins" methods
+    You can either go for all local mins by calling the "find_all_mins" method
+    Or you can directly call the "minsOfmins" method
     """
     # class attributes
-    def __init__(self,df,n):
+    def __init__(self,df,n=5,*args):
         # instance attributes
         self.n = n
         self.df = df
         self.mins = []
         self.merged = None
-        self.filter_one = "no"
+        self.all_local_mins = "deactivated"
+        self.sav = "deactivated"
+
+        # polynomial order & window_size for Savgol filter
+        self.pol = 3
+        self.win_size = 51
 
     def from_idx_to_DF(self):
         """
@@ -110,7 +116,7 @@ class get_local_mins_max:
         return final_mins_idx_unique
 
     def minsOfmins(self):
-        if self.filter_one == 'no':
+        if self.all_local_mins == "deactivated":
             self.find_all_mins()
             self.second_algorithm()
         else:
@@ -126,6 +132,10 @@ class get_local_mins_max:
         # ax1.plot(self.merged.loc[self.merged.flag_max == 1.0].index,
         #     self.merged.Close[self.merged.flag_max == 1.0],
         #     '*', markersize=9, color='green', label='local max')
+        if self.sav == "activated":
+            ax1.plot(self.merged.Savgol, color='red', label=f'Savgol. w:{self.win_size},pol:{self.pol}')
+        else:
+            pass
         ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.6)
         ax1.spines["top"].set_visible(False)    
         ax1.spines["bottom"].set_visible(False)    
@@ -133,11 +143,20 @@ class get_local_mins_max:
         ax1.spines["left"].set_visible(False) 
         ax1.set_title(f"{ticker}")
         ax1.legend()
+    
+    def savgol(self):
+        yhat = savgol_filter(self.df.Close, self.win_size, self.pol)
+        self.sav = "activated"
+        self.merged['Savgol'] = yhat
+        self.generate_plot()
+        return yhat
+
 
 
 
 if __name__ == '__main__':
     df = pull_data(ticker,START)
-    msft = get_local_mins_max(df,n)
+    msft = local_extremas(df,n)
     msft.minsOfmins()
     msft.generate_plot()
+    msft.savgol()
