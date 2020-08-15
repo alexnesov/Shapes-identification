@@ -21,6 +21,8 @@ class local_extremas:
     Or you can directly call the "minsOfmins" method
     """
 
+    numb_of_stocks = 0
+
     # class attributes
     def __init__(self,ticker, df=None, n=5, pol=3, win_size=51):
         # instance attributes
@@ -37,6 +39,8 @@ class local_extremas:
         # polynomial order & window_size for Savgol filter
         self.pol = pol
         self.win_size = win_size
+
+        local_extremas.numb_of_stocks += 1
     
     def __repr__(self):
         return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
@@ -173,6 +177,7 @@ class local_extremas:
         self.generate_plot()
 
 
+
 if __name__ == '__main__':
     for tick in tickers:
         print(f'Doing the job for {tick}')
@@ -181,4 +186,4 @@ if __name__ == '__main__':
         tick.savgol()
         tick.nb_mins
        
-print(tick)
+
