@@ -13,7 +13,7 @@ tickers = ['MSFT', 'TSLA', 'AAPL', 'PG', 'INSG', 'PLUG']
 
 class local_extremas:
     """
-    :param df: dataframe with 2 columns min: Date, Close
+    :param ticker: stock's symbol as a string
     :param n: n defines the level of granularity (the scope) for the second algo
     :args: pol and win_size are optionally modifiable for Savgol filter
 
@@ -174,3 +174,4 @@ if __name__ == '__main__':
         tick = local_extremas(ticker=tick)
         tick.minsOfmins()
         tick.savgol()
+        tick.merged
