@@ -10,4 +10,7 @@
 </ul>
 
 
+
+<p> Example of output of my own algo: </p>p>
+
 ![alt text](images/MSFT.png)
