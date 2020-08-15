@@ -11,6 +11,6 @@
 
 
 
-<p> Example of output of my own algo: </p>p>
+<p> Example of output of my own algo: </p>
 
 ![alt text](images/MSFT.png)
