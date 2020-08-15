@@ -20,12 +20,14 @@ class local_extremas:
     You can either go for all local mins by calling the "find_all_mins" method
     Or you can directly call the "minsOfmins" method
     """
+
     # class attributes
     def __init__(self,ticker, df=None, n=5, pol=3, win_size=51):
         # instance attributes
         self.ticker = ticker
         self.n = n
         self.mins = []
+        self.nb_mins = 0
         self.df = df
         self.merged = None
         self.all_local_mins = "deactivated"
@@ -35,6 +37,9 @@ class local_extremas:
         # polynomial order & window_size for Savgol filter
         self.pol = pol
         self.win_size = win_size
+    
+    def __repr__(self):
+        return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
 
     def pull_data(self, ticker, START):
         pd.set_option('display.max_rows', None)
@@ -43,7 +48,6 @@ class local_extremas:
         self.df = df.reset_index()
         return self.df 
         
-
     def from_idx_to_DF(self):
         """
         1. Takes output of first filter or second. The output we are talking about is a 
@@ -59,8 +63,10 @@ class local_extremas:
         merged['flag_min'] = np.where(merged['flag'].notna(),1,0)
         merged = merged.set_index('Date')
         self.merged = merged
-        
 
+    def countMin(self):
+        self.nb_mins = len(self.mins)
+        
     def find_all_mins(self):
         """
         returns:  list of valid indices
@@ -84,8 +90,8 @@ class local_extremas:
 
         self.mins = valid
         self.from_idx_to_DF()
+        self.countMin()
         self.localminMode = 'allMins'
-
 
     def second_algorithm(self):
         self.df['index'] = list(range(0,len(self.df)))
@@ -118,6 +124,7 @@ class local_extremas:
 
         self.mins = final_mins_idx_unique
         self.from_idx_to_DF()
+        self.countMin()
         self.localminMode = 'minsOfMins'
 
     def minsOfmins(self):
@@ -152,7 +159,7 @@ class local_extremas:
         ax1.spines["bottom"].set_visible(False)    
         ax1.spines["right"].set_visible(False)    
         ax1.spines["left"].set_visible(False) 
-        ax1.set_title(f"{self.ticker}")
+        ax1.set_title(f"{self.ticker}, number of local mins: {self.nb_mins}")
         ax1.legend()
         if self.sav == "activated":
             fig.savefig(f'{self.ticker}')
@@ -166,12 +173,12 @@ class local_extremas:
         self.generate_plot()
 
 
-
-
 if __name__ == '__main__':
     for tick in tickers:
         print(f'Doing the job for {tick}')
         tick = local_extremas(ticker=tick)
         tick.minsOfmins()
         tick.savgol()
-        tick.merged
+        tick.nb_mins
+       
+print(tick)
