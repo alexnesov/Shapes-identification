@@ -7,40 +7,42 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 
 # Parameters
-n=5
-ticker = "msft"
 START = "2020-01-01"
-
-def pull_data(ticker, START):
-    pd.set_option('display.max_rows', None)
-    today = str(datetime.today().strftime('%Y-%m-%d'))
-    fin = yf.download(ticker, start = START, end = today, period = "1d")
-    fin = fin.reset_index()
-    return fin 
+tickers = ['MSFT', 'TSLA', 'AAPL', 'PG', 'INSG', 'PLUG']
 
 
 class local_extremas:
     """
     :param df: dataframe with 2 columns min: Date, Close
     :param n: n defines the level of granularity (the scope) for the second algo
-    :args: pol and win_size are optionally modifyable for Savgol filter
+    :args: pol and win_size are optionally modifiable for Savgol filter
 
     You can either go for all local mins by calling the "find_all_mins" method
     Or you can directly call the "minsOfmins" method
     """
     # class attributes
-    def __init__(self,df,n=5,*args):
+    def __init__(self,ticker, df=None, n=5, pol=3, win_size=51):
         # instance attributes
+        self.ticker = ticker
         self.n = n
-        self.df = df
         self.mins = []
+        self.df = df
         self.merged = None
         self.all_local_mins = "deactivated"
         self.sav = "deactivated"
+        self.localminMode = None
 
         # polynomial order & window_size for Savgol filter
-        self.pol = 3
-        self.win_size = 51
+        self.pol = pol
+        self.win_size = win_size
+
+    def pull_data(self, ticker, START):
+        pd.set_option('display.max_rows', None)
+        today = str(datetime.today().strftime('%Y-%m-%d'))
+        df = yf.download(self.ticker, start = START, end = today, period = "1d")
+        self.df = df.reset_index()
+        return self.df 
+        
 
     def from_idx_to_DF(self):
         """
@@ -56,15 +58,18 @@ class local_extremas:
         merged = self.df.merge(new_df, on='index', how='left')
         merged['flag_min'] = np.where(merged['flag'].notna(),1,0)
         merged = merged.set_index('Date')
-
         self.merged = merged
-        return self.merged
+        
 
     def find_all_mins(self):
         """
         returns:  list of valid indices
         """
         # all local minimums
+        if self.df == None:
+            self.pull_data(self.ticker,START)
+        else:
+            pass
         valid = []
         self.df['index'] = list(range(0,len(self.df)))
 
@@ -78,17 +83,17 @@ class local_extremas:
                 pass
 
         self.mins = valid
-        self.merged = self.from_idx_to_DF()
-        return self.mins
+        self.from_idx_to_DF()
+        self.localminMode = 'allMins'
+
 
     def second_algorithm(self):
-        df = pull_data(ticker, START)
-        df['index'] = list(range(0,len(df)))
+        self.df['index'] = list(range(0,len(self.df)))
         # broader local minimums
         final_mins_idx = []
         for i in self.mins:
             try:
-                print(df['Close'][i])
+                print(self.df['Close'][i])
                 start = i - self.n
                 end = i + self.n 
                 interval = list(range(start,end))
@@ -97,7 +102,7 @@ class local_extremas:
                 for v in self.mins:
                     if v in interval:
                         in_interval.append(v)
-                        prices_in_interval.append(df['Close'][v])
+                        prices_in_interval.append(self.df['Close'][v])
                 
                 indexes_mins = [i for i, x in enumerate(prices_in_interval) \
                     if x == min(prices_in_interval)]
@@ -112,8 +117,8 @@ class local_extremas:
         final_mins_idx_unique = np.unique(final_mins_idx)
 
         self.mins = final_mins_idx_unique
-        self.merged = self.from_idx_to_DF()
-        return final_mins_idx_unique
+        self.from_idx_to_DF()
+        self.localminMode = 'minsOfMins'
 
     def minsOfmins(self):
         if self.all_local_mins == "deactivated":
@@ -126,9 +131,15 @@ class local_extremas:
         fig = plt.figure(figsize=(15,8))
         ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
         self.merged.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
+
+        if self.localminMode == 'allMins':
+            minmode = f'Mode: all mins'
+        else:
+            minmode = f'Mode: mins of mins, n = {self.n}'
+
         ax1.plot(self.merged.loc[self.merged.flag_min == 1.0].index,
             self.merged.Close[self.merged.flag_min == 1.0],
-            '^', markersize=9, color='purple', label='local min')
+            '^', markersize=9, color='purple', label=f'local mins.{minmode}')
         # ax1.plot(self.merged.loc[self.merged.flag_max == 1.0].index,
         #     self.merged.Close[self.merged.flag_max == 1.0],
         #     '*', markersize=9, color='green', label='local max')
@@ -141,22 +152,25 @@ class local_extremas:
         ax1.spines["bottom"].set_visible(False)    
         ax1.spines["right"].set_visible(False)    
         ax1.spines["left"].set_visible(False) 
-        ax1.set_title(f"{ticker}")
+        ax1.set_title(f"{self.ticker}")
         ax1.legend()
-    
+        if self.sav == "activated":
+            fig.savefig(f'{self.ticker}')
+        else:
+            pass
+
     def savgol(self):
         yhat = savgol_filter(self.df.Close, self.win_size, self.pol)
         self.sav = "activated"
         self.merged['Savgol'] = yhat
         self.generate_plot()
-        return yhat
 
 
 
 
 if __name__ == '__main__':
-    df = pull_data(ticker,START)
-    msft = local_extremas(df,n)
-    msft.minsOfmins()
-    msft.generate_plot()
-    msft.savgol()
+    for tick in tickers:
+        print(f'Doing the job for {tick}')
+        tick = local_extremas(ticker=tick)
+        tick.minsOfmins()
+        tick.savgol()
