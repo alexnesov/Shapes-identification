@@ -2,6 +2,11 @@
 
 <p align="center">Illustration of cup shaped curves. Ilustration source: http://www.guppytraders.com/gup347.shtml </p>
 
+
+
+![alt text](images/cuphandle.png)
+
+
 <h3> Repo description: </h3>
 
 <ul>
