@@ -16,5 +16,3 @@
 
 
 
-<p> Example of output of my own algo: </p>
-
