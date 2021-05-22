@@ -9,7 +9,7 @@
 
 <h3> Repo description: </h3></br>
 
-The aim of this repo is to provide a set of programming techniques to identify typical TA geomatric shapes.
+The aim of this repo is to provide a set of programming techniques to identify typical TA geometric shapes.
 
 <b> In construction...</b>
 <ul>
