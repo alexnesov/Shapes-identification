@@ -30,7 +30,9 @@ df = pull_data('TSLA', '2021-01-01')
 
 class local_extremas:
     """
-    :param n: n defines the level of granularity (the scope) for the second algo
+    :param ticker: STRING, the ticker of the stock
+    :param df: DATAFRAME, stock market data (OHLC)
+    :param n: INT, n defines the level of granularity (the scope) for the second algo
     :args: pol and win_size are optionally modifiable for Savgol filter
 
     You can either go for all local mins by calling the "find_all_mins" method
@@ -40,10 +42,10 @@ class local_extremas:
     def __init__(self, ticker, df, n=5, pol=3, win_size=51):
         # instance attributes
         self.ticker = ticker
+        self.df = df
         self.n = n
         self.mins = []
         self.nb_mins = 0
-        self.df = df
         self.merged = None
         self.all_local_mins = "deactivated"
         self.sav = "deactivated"
@@ -56,10 +58,12 @@ class local_extremas:
     def __repr__(self):
         return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
 
-        
-    def from_idx_to_DF(self):
+    def countMin(self):
+        self.nb_mins = len(self.mins)
+                
+    def generateCalculatedMinsDF(self):
         """
-        1. Takes output of first filter or second. The output we are talking about is a 
+        1. Takes output of filter. The output is a 
         list of indices indicate where the mins are
         2. Creates a flag column, every flag being crated thanks to this list of minds indices
 
@@ -73,9 +77,7 @@ class local_extremas:
         merged = merged.set_index('Date')
         self.merged = merged
 
-    def countMin(self):
-        self.nb_mins = len(self.mins)
-        
+
     def find_all_mins(self):
         """
         returns:  list of valid indices
@@ -83,7 +85,6 @@ class local_extremas:
         valid = []
         self.df['index'] = list(range(0,len(self.df)))
 
-        self.df = self.df.reset_index()
         for index in list(self.df['Close'].index):
             try:
                 if self.df['Close'][index] < self.df['Close'][index-1] and \
@@ -93,7 +94,7 @@ class local_extremas:
                 pass
 
         self.mins = valid
-        self.from_idx_to_DF()
+        self.generateCalculatedMinsDF()
         self.countMin()
         self.localminMode = 'allMins'
 
@@ -166,7 +167,7 @@ def main():
     genExtremas = local_extremas('TSLA',df)
     genExtremas.df
     genExtremas.find_all_mins()
-    genExtremas.from_idx_to_DF()
+    genExtremas.generateCalculatedMinsDF()
     genExtremas.merged
 
     generate_plot(genExtremas.merged, ticker="TSLA")
