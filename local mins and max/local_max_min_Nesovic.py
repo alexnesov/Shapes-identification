@@ -53,8 +53,6 @@ class local_extremas:
         self.pol = pol
         self.win_size = win_size
 
-        local_extremas.numb_of_stocks += 1
-    
     def __repr__(self):
         return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
 
@@ -82,11 +80,6 @@ class local_extremas:
         """
         returns:  list of valid indices
         """
-        # all local minimums
-        if self.df == None:
-            self.pull_data(self.ticker,START)
-        else:
-            pass
         valid = []
         self.df['index'] = list(range(0,len(self.df)))
 
@@ -147,9 +140,37 @@ class local_extremas:
         self.merged['Savgol'] = yhat
         self.generate_plot()
 
+def generate_plot(df, ticker):
+    """
+    """
+    fig = plt.figure(figsize=(15,8))
+    ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
+    df.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
+    ax1.plot(df.loc[df.flag_min == 1.0].index,
+        df.Close[df.flag_min == 1.0],
+        '^', markersize=9, color='purple', label='local min')
+    # ax1.plot(df.loc[df.flag_max == 1.0].index,
+    #     df.Close[df.flag_max == 1.0],
+    #     '*', markersize=9, color='green', label='local max')
+    ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.6)
+    ax1.spines["top"].set_visible(False)    
+    ax1.spines["bottom"].set_visible(False)    
+    ax1.spines["right"].set_visible(False)    
+    ax1.spines["left"].set_visible(False) 
+    ax1.set_title(f"{ticker}")
+    ax1.legend()
 
 
+def main():
 
+    genExtremas = local_extremas('TSLA',df)
+    genExtremas.df
+    genExtremas.find_all_mins()
+    genExtremas.from_idx_to_DF()
+    genExtremas.merged
+
+    generate_plot(genExtremas.merged, ticker="TSLA")
 
 if __name__ == '__main__':
+    main()
 
