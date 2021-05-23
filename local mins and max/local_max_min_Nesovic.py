@@ -35,7 +35,6 @@ class local_extremas:
     :param df: DATAFRAME, stock market data, it needs to contain:
     -A 'Date' column
     -A 'Close' column
-    :param n: INT, n defines the level of granularity (the scope) for the second algo
     :args: pol and win_size are optionally modifiable for Savgol filter
 
     You can either go for all local mins by calling the "find_all_mins" method
@@ -46,13 +45,8 @@ class local_extremas:
         # instance attributes
         self.ticker = ticker
         self.df = df[['Date','Close']]
-        self.n = n
-        self.minsIDX = [] # Index of mins, not the min value itself
         self.nb_mins = 0
-        self.CalculatedMinsDF = None
-        self.all_local_mins = "deactivated"
         self.sav = "deactivated"
-        self.localminMode = None
 
         # polynomial order & window_size for Savgol filter
         self.pol = pol
@@ -62,9 +56,24 @@ class local_extremas:
         return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
 
     def countMin(self):
-        self.nb_mins = len(self.minsIDX)
+        self.nb_mins = len(self.allMinsIDX)
 
+    
+    def allMinsIDX(self):
+        allMinsIDX = []
+        self.df['copyIndex'] = list(range(0,len(self.df)))
 
+        for i in list(self.df.index):
+            try:
+                if self.df['Close'][i] < self.df['Close'][i-1] and \
+                    self.df['Close'][i] < self.df['Close'][i+1]:
+                    allMinsIDX.append(i)
+            except KeyError:
+                pass
+        
+        self.allMinsIDX = allMinsIDX
+
+        
     def mergeMinstoIntialDF(self):
         """
         1. Takes output of filter. The output is a 
@@ -73,38 +82,19 @@ class local_extremas:
 
         returns: dataframe
         """
-        ListOfOnes = [1] * len(self.minsIDX)
-        minimumsZipped = list(zip(self.minsIDX,ListOfOnes))
+        ListOfOnes = [1] * len(self.allMinsIDX)
+        minimumsZipped = list(zip(self.allMinsIDX,ListOfOnes))
         minimumsDF = pd.DataFrame(minimumsZipped, columns=['copyIndex','flag_min'])
         self.CalculatedMinsDF = self.df.merge(minimumsDF, on='copyIndex', how='left')
         self.CalculatedMinsDF['flag_min'] = np.where(self.CalculatedMinsDF['flag_min'].notna(),1,0)
         self.CalculatedMinsDF = self.CalculatedMinsDF.set_index('Date')
-
-        return self.CalculatedMinsDF
-
-
-    def find_all_mins(self):
-        self.df['copyIndex'] = list(range(0,len(self.df)))
-
-        for i in list(self.df.index):
-            try:
-                if self.df['Close'][i] < self.df['Close'][i-1] and \
-                    self.df['Close'][i] < self.df['Close'][i+1]:
-                    self.minsIDX.append(i)
-            except KeyError:
-                pass
-        
-        print(self.minsIDX)
-        self.mergeMinstoIntialDF()
-        self.countMin()
-        self.localminMode = 'allMins'
 
 
     def savgol(self):
         yhat = savgol_filter(self.df.Close, self.win_size, self.pol)
         self.sav = "activated"
         self.CalculatedMinsDF['Savgol'] = yhat
-        self.generate_plot()
+
 
 def generate_plot(df, ticker):
     """
@@ -115,9 +105,6 @@ def generate_plot(df, ticker):
     ax1.plot(df.loc[df.flag_min == 1.0].index,
         df.Close[df.flag_min == 1.0],
         '^', markersize=9, color='purple', label='local min')
-    # ax1.plot(df.loc[df.flag_max == 1.0].index,
-    #     df.Close[df.flag_max == 1.0],
-    #     '*', markersize=9, color='green', label='local max')
     ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.6)
     ax1.spines["top"].set_visible(False)    
     ax1.spines["bottom"].set_visible(False)    
@@ -127,15 +114,11 @@ def generate_plot(df, ticker):
     ax1.legend()
 
 
-def main():
-
-    genExtremas = local_extremas('TSLA',df)
-    genExtremas.df
-    genExtremas.find_all_mins()
-    genExtremas.mergeMinstoIntialDF()
-
-    generate_plot(genExtremas.CalculatedMinsDF, ticker="TSLA")
 
 if __name__ == '__main__':
-    main()
+    genExtremas = local_extremas('TSLA',df)
+    genExtremas.allMinsIDX()
+    genExtremas.allMinsIDX
+    genExtremas.mergeMinstoIntialDF()
 
+    generate_plot(genExtremas.CalculatedMinsDF,ticker="TSLA")
