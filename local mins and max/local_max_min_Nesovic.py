@@ -5,15 +5,31 @@ import numpy as np
 from datetime import datetime, timedelta 
 import yfinance as yf
 import matplotlib.pyplot as plt
+#pd.set_option('display.max_rows', None)
 
 # Parameters
 START = "2020-01-01"
 tickers = ['MSFT', 'TSLA', 'AAPL', 'PG', 'INSG', 'PLUG']
 
 
+
+def pull_data(ticker, START):
+    """
+    Pulls stock market data from yahoo finance
+
+    :ticker: stock string identifier
+    :param START: format yyyy-mm-dd
+    """
+    today = str(datetime.today().strftime('%Y-%m-%d'))
+    df = yf.download(ticker, start = START, end = today, period = "1d")
+    df = df.reset_index()
+    return df 
+
+
+df = pull_data('TSLA', '2021-01-01')
+
 class local_extremas:
     """
-    :param ticker: stock's symbol as a string
     :param n: n defines the level of granularity (the scope) for the second algo
     :args: pol and win_size are optionally modifiable for Savgol filter
 
@@ -21,10 +37,7 @@ class local_extremas:
     Or you can directly call the "minsOfmins" method
     """
 
-    numb_of_stocks = 0
-
-    # class attributes
-    def __init__(self,ticker, df=None, n=5, pol=3, win_size=51):
+    def __init__(self, ticker, df, n=5, pol=3, win_size=51):
         # instance attributes
         self.ticker = ticker
         self.n = n
@@ -45,12 +58,6 @@ class local_extremas:
     def __repr__(self):
         return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
 
-    def pull_data(self, ticker, START):
-        pd.set_option('display.max_rows', None)
-        today = str(datetime.today().strftime('%Y-%m-%d'))
-        df = yf.download(self.ticker, start = START, end = today, period = "1d")
-        self.df = df.reset_index()
-        return self.df 
         
     def from_idx_to_DF(self):
         """
@@ -98,6 +105,8 @@ class local_extremas:
         self.localminMode = 'allMins'
 
     def second_algorithm(self):
+        """
+        """
         self.df['index'] = list(range(0,len(self.df)))
         # broader local minimums
         final_mins_idx = []
@@ -131,44 +140,6 @@ class local_extremas:
         self.countMin()
         self.localminMode = 'minsOfMins'
 
-    def minsOfmins(self):
-        if self.all_local_mins == "deactivated":
-            self.find_all_mins()
-            self.second_algorithm()
-        else:
-            self.second_algorithm()
-
-    def generate_plot(self):
-        fig = plt.figure(figsize=(15,8))
-        ax1 = fig.add_subplot(111, ylabel='Close',xlabel='Date')
-        self.merged.Close.plot(ax=ax1, color='black', lw=2, alpha=0.4)
-
-        if self.localminMode == 'allMins':
-            minmode = f'Mode: all mins'
-        else:
-            minmode = f'Mode: mins of mins, n = {self.n}'
-
-        ax1.plot(self.merged.loc[self.merged.flag_min == 1.0].index,
-            self.merged.Close[self.merged.flag_min == 1.0],
-            '^', markersize=9, color='purple', label=f'local mins.{minmode}')
-        # ax1.plot(self.merged.loc[self.merged.flag_max == 1.0].index,
-        #     self.merged.Close[self.merged.flag_max == 1.0],
-        #     '*', markersize=9, color='green', label='local max')
-        if self.sav == "activated":
-            ax1.plot(self.merged.Savgol, color='red', label=f'Savgol. w:{self.win_size},pol:{self.pol}')
-        else:
-            pass
-        ax1.grid(color='grey', linestyle='-', linewidth=0.25, alpha=0.6)
-        ax1.spines["top"].set_visible(False)    
-        ax1.spines["bottom"].set_visible(False)    
-        ax1.spines["right"].set_visible(False)    
-        ax1.spines["left"].set_visible(False) 
-        ax1.set_title(f"{self.ticker}, number of local mins: {self.nb_mins}")
-        ax1.legend()
-        if self.sav == "activated":
-            fig.savefig(f'{self.ticker}')
-        else:
-            pass
 
     def savgol(self):
         yhat = savgol_filter(self.df.Close, self.win_size, self.pol)
@@ -178,12 +149,7 @@ class local_extremas:
 
 
 
+
+
 if __name__ == '__main__':
-    for tick in tickers:
-        print(f'Doing the job for {tick}')
-        tick = local_extremas(ticker=tick)
-        tick.minsOfmins()
-        tick.savgol()
-        tick.nb_mins
-       
 
