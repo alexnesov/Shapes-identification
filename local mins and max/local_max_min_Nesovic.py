@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 import yfinance as yf
 import matplotlib.pyplot as plt
 #pd.set_option('display.max_rows', None)
+import sys
 
 # Parameters
 START = "2020-01-01"
@@ -31,7 +32,9 @@ df = pull_data('TSLA', '2021-01-01')
 class local_extremas:
     """
     :param ticker: STRING, the ticker of the stock
-    :param df: DATAFRAME, stock market data (OHLC)
+    :param df: DATAFRAME, stock market data, it needs to contain:
+    -A 'Date' column
+    -A 'Close' column
     :param n: INT, n defines the level of granularity (the scope) for the second algo
     :args: pol and win_size are optionally modifiable for Savgol filter
 
@@ -42,11 +45,11 @@ class local_extremas:
     def __init__(self, ticker, df, n=5, pol=3, win_size=51):
         # instance attributes
         self.ticker = ticker
-        self.df = df
+        self.df = df[['Date','Close']]
         self.n = n
-        self.mins = []
+        self.minsIDX = [] # Index of mins, not the min value itself
         self.nb_mins = 0
-        self.merged = None
+        self.CalculatedMinsDF = None
         self.all_local_mins = "deactivated"
         self.sav = "deactivated"
         self.localminMode = None
@@ -59,9 +62,10 @@ class local_extremas:
         return '{Ticker:'+self.ticker+', number of local mins:'+str(self.nb_mins)+f' Mode: {self.localminMode} '+'}'
 
     def countMin(self):
-        self.nb_mins = len(self.mins)
-                
-    def generateCalculatedMinsDF(self):
+        self.nb_mins = len(self.minsIDX)
+
+
+    def mergeMinstoIntialDF(self):
         """
         1. Takes output of filter. The output is a 
         list of indices indicate where the mins are
@@ -69,76 +73,37 @@ class local_extremas:
 
         returns: dataframe
         """
-        ones = [1] * len(self.mins)
-        new_zip = list(zip(self.mins,ones))
-        new_df = pd.DataFrame(new_zip, columns=['index','flag'])
-        merged = self.df.merge(new_df, on='index', how='left')
-        merged['flag_min'] = np.where(merged['flag'].notna(),1,0)
-        merged = merged.set_index('Date')
-        self.merged = merged
+        ListOfOnes = [1] * len(self.minsIDX)
+        minimumsZipped = list(zip(self.minsIDX,ListOfOnes))
+        minimumsDF = pd.DataFrame(minimumsZipped, columns=['copyIndex','flag_min'])
+        self.CalculatedMinsDF = self.df.merge(minimumsDF, on='copyIndex', how='left')
+        self.CalculatedMinsDF['flag_min'] = np.where(self.CalculatedMinsDF['flag_min'].notna(),1,0)
+        self.CalculatedMinsDF = self.CalculatedMinsDF.set_index('Date')
+
+        return self.CalculatedMinsDF
 
 
     def find_all_mins(self):
-        """
-        returns:  list of valid indices
-        """
-        valid = []
-        self.df['index'] = list(range(0,len(self.df)))
+        self.df['copyIndex'] = list(range(0,len(self.df)))
 
-        for index in list(self.df['Close'].index):
+        for i in list(self.df.index):
             try:
-                if self.df['Close'][index] < self.df['Close'][index-1] and \
-                    self.df['Close'][index] < self.df['Close'][index+1]:
-                    valid.append(index)
+                if self.df['Close'][i] < self.df['Close'][i-1] and \
+                    self.df['Close'][i] < self.df['Close'][i+1]:
+                    self.minsIDX.append(i)
             except KeyError:
                 pass
-
-        self.mins = valid
-        self.generateCalculatedMinsDF()
+        
+        print(self.minsIDX)
+        self.mergeMinstoIntialDF()
         self.countMin()
         self.localminMode = 'allMins'
-
-    def second_algorithm(self):
-        """
-        """
-        self.df['index'] = list(range(0,len(self.df)))
-        # broader local minimums
-        final_mins_idx = []
-        for i in self.mins:
-            try:
-                print(self.df['Close'][i])
-                start = i - self.n
-                end = i + self.n 
-                interval = list(range(start,end))
-                in_interval = []
-                prices_in_interval = []
-                for v in self.mins:
-                    if v in interval:
-                        in_interval.append(v)
-                        prices_in_interval.append(self.df['Close'][v])
-                
-                indexes_mins = [i for i, x in enumerate(prices_in_interval) \
-                    if x == min(prices_in_interval)]
-                
-                # usualy we are going to get only one min (the probability to 
-                # get exact two same prices, on decimals level on a 10 days 
-                # interval for a same stock if very very mpw). but we never know
-                for i in indexes_mins:
-                    final_mins_idx.append(in_interval[i])
-            except KeyError:
-                pass
-        final_mins_idx_unique = np.unique(final_mins_idx)
-
-        self.mins = final_mins_idx_unique
-        self.from_idx_to_DF()
-        self.countMin()
-        self.localminMode = 'minsOfMins'
 
 
     def savgol(self):
         yhat = savgol_filter(self.df.Close, self.win_size, self.pol)
         self.sav = "activated"
-        self.merged['Savgol'] = yhat
+        self.CalculatedMinsDF['Savgol'] = yhat
         self.generate_plot()
 
 def generate_plot(df, ticker):
@@ -167,10 +132,9 @@ def main():
     genExtremas = local_extremas('TSLA',df)
     genExtremas.df
     genExtremas.find_all_mins()
-    genExtremas.generateCalculatedMinsDF()
-    genExtremas.merged
+    genExtremas.mergeMinstoIntialDF()
 
-    generate_plot(genExtremas.merged, ticker="TSLA")
+    generate_plot(genExtremas.CalculatedMinsDF, ticker="TSLA")
 
 if __name__ == '__main__':
     main()
